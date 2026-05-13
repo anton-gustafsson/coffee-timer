@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+
+  <!-- Steam wisps -->
+  <g stroke="#F0C080" stroke-width="6" stroke-linecap="round" fill="none">
+    <path d="M84 100 C 77 84 91 74 84 58"/>
+    <path d="M124 92 C 117 76 131 66 124 50"/>
+    <path d="M164 100 C 157 84 171 74 164 58"/>
+  </g>
+
+  <!-- Mug body -->
+  <rect x="52" y="108" width="136" height="104" rx="16" fill="#FFFFFF"/>
+
+  <!-- Coffee surface -->
+  <rect x="52" y="108" width="136" height="34" rx="16" fill="#6F4E37"/>
+  <rect x="52" y="126" width="136" height="16" fill="#6F4E37"/>
+
+  <!-- Coffee surface highlight -->
+  <ellipse cx="98" cy="116" rx="22" ry="7" fill="#8B6347" opacity="0.45"/>
+
+  <!-- Handle outer -->
+  <path d="M188 130 Q226 130 226 160 Q226 192 188 192"
+        stroke="#F0C080" stroke-width="20" fill="none" stroke-linecap="round"/>
+  <!-- Handle inner cutout -->
+  <path d="M188 130 Q210 130 210 160 Q210 192 188 192"
+        stroke="#FFFFFF" stroke-width="7" fill="none" stroke-linecap="round"/>
+
+  <!-- Saucer -->
+  <ellipse cx="120" cy="215" rx="80" ry="10" fill="#F0C080"/>
+
+</svg>
