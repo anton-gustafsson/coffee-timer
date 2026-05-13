@@ -162,23 +162,48 @@ class CoffeeTimerCard extends HTMLElement {
           border: 1px solid var(--divider-color);
         }
         .toggle-btn:active { opacity: 0.8; }
+
+        .error-banner {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px;
+          border-radius: 8px;
+          background: var(--error-color, #db4437);
+          color: #fff;
+        }
+        .error-icon { font-size: 1.5em; flex-shrink: 0; }
+        .error-title { font-weight: 600; margin-bottom: 2px; }
+        .error-message { font-size: 0.85em; opacity: 0.9; }
       </style>
 
       <ha-card>
-        <div class="header">
-          <div class="header-icon">☕</div>
-          <div class="header-text">
-            <div class="header-title" id="title">Coffee Timer</div>
-            <div class="header-status" id="status">Not scheduled</div>
+        <div id="content">
+          <div class="header">
+            <div class="header-icon">☕</div>
+            <div class="header-text">
+              <div class="header-title" id="title">Coffee Timer</div>
+              <div class="header-status" id="status">Not scheduled</div>
+            </div>
+          </div>
+
+          <div class="time-row">
+            <span class="time-label">Brew time</span>
+            <input type="time" id="time-input" />
+          </div>
+
+          <button class="toggle-btn disabled" id="toggle-btn">Enable</button>
+        </div>
+
+        <div id="error" style="display:none">
+          <div class="error-banner">
+            <span class="error-icon">⚠️</span>
+            <div>
+              <div class="error-title">Integration unavailable</div>
+              <div class="error-message" id="error-message">Coffee Timer integration is not loaded.</div>
+            </div>
           </div>
         </div>
-
-        <div class="time-row">
-          <span class="time-label">Brew time</span>
-          <input type="time" id="time-input" />
-        </div>
-
-        <button class="toggle-btn disabled" id="toggle-btn">Enable</button>
       </ha-card>
     `;
 
@@ -200,12 +225,39 @@ class CoffeeTimerCard extends HTMLElement {
     });
   }
 
+  _showError(message) {
+    const content = this.shadowRoot.getElementById("content");
+    const error = this.shadowRoot.getElementById("error");
+    const msg = this.shadowRoot.getElementById("error-message");
+    if (content) content.style.display = "none";
+    if (error) error.style.display = "block";
+    if (msg) msg.textContent = message;
+  }
+
+  _showContent() {
+    const content = this.shadowRoot.getElementById("content");
+    const error = this.shadowRoot.getElementById("error");
+    if (content) content.style.display = "block";
+    if (error) error.style.display = "none";
+  }
+
   _render() {
     if (!this._hass || !this._config || !this.shadowRoot.getElementById("title")) return;
 
     const sw = this._hass.states[this._config.switch_entity];
     const timeEnt = this._hass.states[this._config.time_entity];
-    if (!sw || !timeEnt) return;
+
+    if (!sw || !timeEnt) {
+      this._showError("Coffee Timer integration is not installed or has been removed.");
+      return;
+    }
+
+    if (sw.state === "unavailable" || timeEnt.state === "unavailable") {
+      this._showError("Coffee Timer integration is unavailable. Check HA logs for details.");
+      return;
+    }
+
+    this._showContent();
 
     const isOn = sw.state === "on";
     const hhmm = (timeEnt.state || "07:00:00").slice(0, 5);
