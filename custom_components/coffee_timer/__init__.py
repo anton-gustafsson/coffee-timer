@@ -6,6 +6,7 @@ from pathlib import Path
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import Event, HomeAssistant
+import homeassistant.helpers.config_validation as cv
 
 from .const import (
     CONF_NOTIFY_MESSAGE,
@@ -22,6 +23,7 @@ from .coordinator import CoffeeTimerCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = ["time", "switch"]
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 CARD_URL = "/coffee_timer/coffee_timer_card.js"
 CARD_PATH = Path(__file__).parent / "coffee_timer_card.js"
 
