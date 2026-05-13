@@ -91,7 +91,7 @@ class CoffeeTimerCard extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         :host { display: block; }
-        ha-card { padding: 20px 16px 16px; }
+        ha-card { padding: 20px 16px 16px; position: relative; }
 
         .header {
           display: flex;
@@ -111,6 +111,45 @@ class CoffeeTimerCard extends HTMLElement {
           color: var(--secondary-text-color);
           margin-top: 2px;
         }
+        .menu-btn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: var(--secondary-text-color);
+          font-size: 1.4em;
+          padding: 4px 6px;
+          border-radius: 4px;
+          line-height: 1;
+          flex-shrink: 0;
+        }
+        .menu-btn:hover { background: var(--secondary-background-color); }
+
+        .menu-dropdown {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          background: var(--ha-card-background, var(--card-background-color, #fff));
+          border-radius: 8px;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+          z-index: 100;
+          min-width: 160px;
+          overflow: hidden;
+          display: none;
+        }
+        .menu-item {
+          display: block;
+          width: 100%;
+          padding: 12px 16px;
+          background: none;
+          border: none;
+          text-align: left;
+          cursor: pointer;
+          font-size: 0.9em;
+          color: var(--primary-text-color);
+          font-family: inherit;
+        }
+        .menu-item:hover { background: var(--secondary-background-color); }
+        .menu-item + .menu-item { border-top: 1px solid var(--divider-color); }
 
         .time-row {
           display: flex;
@@ -185,6 +224,7 @@ class CoffeeTimerCard extends HTMLElement {
               <div class="header-title" id="title">Coffee Timer</div>
               <div class="header-status" id="status">Not scheduled</div>
             </div>
+            <button class="menu-btn" id="menu-btn" title="More options">⋮</button>
           </div>
 
           <div class="time-row">
@@ -204,8 +244,45 @@ class CoffeeTimerCard extends HTMLElement {
             </div>
           </div>
         </div>
+
+        <div class="menu-dropdown" id="menu-dropdown">
+          <button class="menu-item" id="menu-switch-info">Switch info</button>
+          <button class="menu-item" id="menu-timer-info">Timer info</button>
+        </div>
       </ha-card>
     `;
+
+    const menuBtn = this.shadowRoot.getElementById("menu-btn");
+    const menuDropdown = this.shadowRoot.getElementById("menu-dropdown");
+
+    const closeMenu = () => { menuDropdown.style.display = "none"; };
+    const openMenu = () => { menuDropdown.style.display = "block"; };
+
+    menuBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      menuDropdown.style.display === "block" ? closeMenu() : openMenu();
+    });
+
+    this.shadowRoot.getElementById("menu-switch-info").addEventListener("click", () => {
+      closeMenu();
+      this.dispatchEvent(new CustomEvent("hass-more-info", {
+        bubbles: true, composed: true,
+        detail: { entityId: this._config.switch_entity },
+      }));
+    });
+
+    this.shadowRoot.getElementById("menu-timer-info").addEventListener("click", () => {
+      closeMenu();
+      this.dispatchEvent(new CustomEvent("hass-more-info", {
+        bubbles: true, composed: true,
+        detail: { entityId: this._config.time_entity },
+      }));
+    });
+
+    this.shadowRoot.querySelector("ha-card").addEventListener("click", (e) => {
+      if (e.target.closest("#menu-dropdown")) return;
+      closeMenu();
+    });
 
     this.shadowRoot.getElementById("time-input").addEventListener("change", (e) => {
       if (!this._hass || !this._config) return;
