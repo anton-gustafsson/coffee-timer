@@ -1,0 +1,31 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Coffee Timer Setup",
+        "description": "Select the smart plug that controls your coffee machine.",
+        "data": {
+          "plug_entity": "Smart Plug"
+        }
+      }
+    },
+    "error": {
+      "entity_not_found": "The selected entity was not found."
+    },
+    "abort": {
+      "already_configured": "This plug is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Coffee Timer Options",
+        "data": {
+          "notify_service": "Notification Device",
+          "notify_title": "Notification Title",
+          "notify_message": "Notification Message"
+        }
+      }
+    }
+  }
+}

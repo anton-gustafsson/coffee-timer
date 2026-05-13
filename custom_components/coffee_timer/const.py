@@ -1,0 +1,10 @@
+DOMAIN = "coffee_timer"
+CONF_PLUG_ENTITY = "plug_entity"
+CONF_NOTIFY_SERVICE = "notify_service"
+CONF_NOTIFY_TITLE = "notify_title"
+CONF_NOTIFY_MESSAGE = "notify_message"
+DEFAULT_BREW_TIME_H = 7
+DEFAULT_BREW_TIME_M = 0
+DEFAULT_NOTIFY_SERVICE = "notify.notify"
+DEFAULT_NOTIFY_TITLE = "Good Morning"
+DEFAULT_NOTIFY_MESSAGE = "Started Brewing Coffee"
