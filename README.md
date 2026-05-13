@@ -10,6 +10,8 @@ A Home Assistant custom integration for scheduling a dumb coffee machine via a s
 - **Custom Lovelace card** with inline time picker and enable/disable toggle
 - **Visual card editor** — no YAML needed to configure the card
 
+![Coffee Timer card](screenshots/card.png)
+
 ## How it works
 
 1. Leave the coffee machine switched on and the smart plug switched off before bed
