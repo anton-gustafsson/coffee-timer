@@ -44,14 +44,34 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
     async def _register_lovelace_resource(_event: Event) -> None:
         try:
-            resources = hass.data["lovelace"]["resources"]
-            existing = {r["url"] for r in resources.async_items()}
+            resources = hass.data.get("lovelace", {}).get("resources")
+            if resources is None:
+                _LOGGER.warning(
+                    "Lovelace resources store not found — add %s manually as a JavaScript module resource",
+                    CARD_URL,
+                )
+                return
+
+            # async_items() was removed in newer HA; fall back to .data.values()
+            if hasattr(resources, "async_items"):
+                items = resources.async_items()
+            elif hasattr(resources, "data"):
+                items = resources.data.values()
+            else:
+                items = []
+
+            existing = {
+                (item.get("url", "") if isinstance(item, dict) else getattr(item, "url", ""))
+                for item in items
+            }
+
             if CARD_URL not in existing:
                 await resources.async_create_item({"res_type": "module", "url": CARD_URL})
-                _LOGGER.debug("Registered coffee-timer-card as Lovelace resource")
-        except Exception:
-            _LOGGER.debug(
-                "Could not auto-register Lovelace resource — add %s manually if using yaml mode",
+                _LOGGER.info("Registered coffee-timer-card as Lovelace resource")
+        except Exception as err:
+            _LOGGER.warning(
+                "Could not auto-register Lovelace resource (%s) — add %s manually as a JavaScript module",
+                err,
                 CARD_URL,
             )
 
