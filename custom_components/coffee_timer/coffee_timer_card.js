@@ -60,6 +60,7 @@ class CoffeeTimerCard extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this._config = null;
     this._hass = null;
+    this._notifyEntityIds = [];
   }
 
   static getConfigElement() {
@@ -111,6 +112,24 @@ class CoffeeTimerCard extends HTMLElement {
           color: var(--secondary-text-color);
           margin-top: 2px;
         }
+
+        .notify-badge {
+          display: none;
+          align-items: center;
+          gap: 3px;
+          font-size: 0.82em;
+          color: var(--secondary-text-color);
+          cursor: pointer;
+          padding: 4px 7px;
+          border-radius: 12px;
+          background: var(--secondary-background-color);
+          flex-shrink: 0;
+          user-select: none;
+        }
+        .notify-badge:hover { opacity: 0.8; }
+        .notify-badge.muted { opacity: 0.4; }
+        .notify-badge-count { font-weight: 600; }
+
         .menu-btn {
           background: none;
           border: none;
@@ -132,9 +151,57 @@ class CoffeeTimerCard extends HTMLElement {
           border-radius: 8px;
           box-shadow: 0 4px 16px rgba(0,0,0,0.2);
           z-index: 100;
-          min-width: 160px;
+          min-width: 190px;
           overflow: hidden;
           display: none;
+        }
+        .menu-section-title {
+          font-size: 0.72em;
+          font-weight: 600;
+          color: var(--secondary-text-color);
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          padding: 10px 16px 4px;
+        }
+        .menu-notify-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 9px 16px;
+        }
+        .menu-notify-label {
+          font-size: 0.9em;
+          color: var(--primary-text-color);
+        }
+        .notify-pill {
+          width: 38px;
+          height: 20px;
+          border-radius: 10px;
+          border: none;
+          cursor: pointer;
+          position: relative;
+          transition: background 0.2s;
+          flex-shrink: 0;
+        }
+        .notify-pill.on { background: var(--primary-color); }
+        .notify-pill.off { background: var(--disabled-color, #9e9e9e); }
+        .notify-pill::after {
+          content: "";
+          position: absolute;
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          background: #fff;
+          top: 3px;
+          transition: left 0.2s;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        .notify-pill.on::after { left: 21px; }
+        .notify-pill.off::after { left: 3px; }
+        .menu-divider {
+          height: 1px;
+          background: var(--divider-color);
+          margin: 4px 0;
         }
         .menu-item {
           display: block;
@@ -224,6 +291,9 @@ class CoffeeTimerCard extends HTMLElement {
               <div class="header-title" id="title">Coffee Timer</div>
               <div class="header-status" id="status">Not scheduled</div>
             </div>
+            <span id="notify-badge" class="notify-badge">
+              🔔 <span class="notify-badge-count" id="notify-count">0</span>
+            </span>
             <button class="menu-btn" id="menu-btn" title="More options">⋮</button>
           </div>
 
@@ -246,6 +316,11 @@ class CoffeeTimerCard extends HTMLElement {
         </div>
 
         <div class="menu-dropdown" id="menu-dropdown">
+          <div id="menu-notify-section" style="display:none">
+            <div class="menu-section-title">Notifications</div>
+            <div id="menu-notify-rows"></div>
+            <div class="menu-divider"></div>
+          </div>
           <button class="menu-item" id="menu-switch-info">Switch info</button>
           <button class="menu-item" id="menu-timer-info">Timer info</button>
         </div>
@@ -253,15 +328,18 @@ class CoffeeTimerCard extends HTMLElement {
     `;
 
     const menuBtn = this.shadowRoot.getElementById("menu-btn");
+    const notifyBadge = this.shadowRoot.getElementById("notify-badge");
     const menuDropdown = this.shadowRoot.getElementById("menu-dropdown");
 
     const closeMenu = () => { menuDropdown.style.display = "none"; };
     const openMenu = () => { menuDropdown.style.display = "block"; };
-
-    menuBtn.addEventListener("click", (e) => {
+    const toggleMenu = (e) => {
       e.stopPropagation();
       menuDropdown.style.display === "block" ? closeMenu() : openMenu();
-    });
+    };
+
+    menuBtn.addEventListener("click", toggleMenu);
+    notifyBadge.addEventListener("click", toggleMenu);
 
     this.shadowRoot.getElementById("menu-switch-info").addEventListener("click", () => {
       closeMenu();
@@ -300,6 +378,70 @@ class CoffeeTimerCard extends HTMLElement {
       const svc = sw.state === "on" ? "turn_off" : "turn_on";
       this._hass.callService("switch", svc, { entity_id: this._config.switch_entity });
     });
+  }
+
+  _syncMenuNotify(notifyEntities) {
+    const section = this.shadowRoot.getElementById("menu-notify-section");
+    section.style.display = notifyEntities.length ? "block" : "none";
+    if (!notifyEntities.length) return;
+
+    const container = this.shadowRoot.getElementById("menu-notify-rows");
+    const currentIds = [...container.querySelectorAll("[data-entity]")].map(
+      (el) => el.dataset.entity
+    );
+
+    if (JSON.stringify(currentIds) !== JSON.stringify(notifyEntities)) {
+      container.innerHTML = "";
+      for (const entityId of notifyEntities) {
+        const state = this._hass.states[entityId];
+        if (!state) continue;
+        const name = state.attributes?.recipient_name || entityId;
+        const isOn = state.state === "on";
+
+        const row = document.createElement("div");
+        row.className = "menu-notify-row";
+        row.dataset.entity = entityId;
+        row.innerHTML = `
+          <span class="menu-notify-label">${name}</span>
+          <button class="notify-pill ${isOn ? "on" : "off"}" aria-pressed="${isOn}"></button>
+        `;
+        row.querySelector(".notify-pill").addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (!this._hass) return;
+          const current = this._hass.states[entityId];
+          const svc = current?.state === "on" ? "turn_off" : "turn_on";
+          this._hass.callService("switch", svc, { entity_id: entityId });
+        });
+        container.appendChild(row);
+      }
+    } else {
+      for (const entityId of notifyEntities) {
+        const state = this._hass.states[entityId];
+        if (!state) continue;
+        const isOn = state.state === "on";
+        const row = container.querySelector(`[data-entity="${entityId}"]`);
+        if (!row) continue;
+        const pill = row.querySelector(".notify-pill");
+        pill.className = `notify-pill ${isOn ? "on" : "off"}`;
+        pill.setAttribute("aria-pressed", String(isOn));
+      }
+    }
+  }
+
+  _updateBellBadge(notifyEntities) {
+    const badge = this.shadowRoot.getElementById("notify-badge");
+    const countEl = this.shadowRoot.getElementById("notify-count");
+    if (!notifyEntities.length) {
+      badge.style.display = "none";
+      return;
+    }
+    const enabled = notifyEntities.filter(
+      (id) => this._hass.states[id]?.state === "on"
+    ).length;
+    badge.style.display = "flex";
+    badge.className = `notify-badge${enabled === 0 ? " muted" : ""}`;
+    countEl.textContent = `${enabled}/${notifyEntities.length}`;
+    badge.title = `${enabled} of ${notifyEntities.length} notifications enabled`;
   }
 
   _showError(message) {
@@ -368,6 +510,10 @@ class CoffeeTimerCard extends HTMLElement {
     const btn = this.shadowRoot.getElementById("toggle-btn");
     btn.textContent = isOn ? "Disable" : "Enable";
     btn.className = `toggle-btn ${isOn ? "enabled" : "disabled"}`;
+
+    const notifyEntities = sw.attributes?.notify_entities || [];
+    this._syncMenuNotify(notifyEntities);
+    this._updateBellBadge(notifyEntities);
   }
 
   getCardSize() {

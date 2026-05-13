@@ -16,15 +16,13 @@ class CoffeeTimerCoordinator:
         self,
         hass: HomeAssistant,
         plug_entity: str,
-        notify_service: str | None = None,
-        notify_title: str = "Good Morning",
-        notify_message: str = "Started Brewing Coffee",
+        notify_recipients: list[dict] | None = None,
     ) -> None:
         self.hass = hass
         self._plug_entity = plug_entity
-        self._notify_service = notify_service
-        self._notify_title = notify_title
-        self._notify_message = notify_message
+        self._recipients: list[dict] = list(notify_recipients or [])
+        self._recipient_enabled: dict[str, bool] = {}
+        self._notify_entity_ids: dict[str, str] = {}
         self._enabled = False
         self._brew_time = datetime.time(7, 0)
         self._next_brew: datetime.datetime | None = None
@@ -59,6 +57,31 @@ class CoffeeTimerCoordinator:
     def next_brew(self) -> datetime.datetime | None:
         return self._next_brew
 
+    @property
+    def recipients(self) -> list[dict]:
+        return self._recipients
+
+    @property
+    def notify_entity_ids(self) -> list[str]:
+        return [
+            self._notify_entity_ids[r["name"]]
+            for r in self._recipients
+            if r["name"] in self._notify_entity_ids
+        ]
+
+    # ------------------------------------------------------------------ notify recipients
+
+    def register_notify_entity(self, name: str, entity_id: str) -> None:
+        self._notify_entity_ids[name] = entity_id
+        self._notify()
+
+    def is_recipient_enabled(self, name: str) -> bool:
+        return self._recipient_enabled.get(name, True)
+
+    def set_recipient_enabled(self, name: str, enabled: bool) -> None:
+        self._recipient_enabled[name] = enabled
+        self._notify()
+
     # ------------------------------------------------------------------ public API
 
     def enable(self) -> None:
@@ -76,13 +99,6 @@ class CoffeeTimerCoordinator:
         if self._enabled:
             self._schedule()
         self._notify()
-
-    def update_notify_options(
-        self, service: str | None, title: str, message: str
-    ) -> None:
-        self._notify_service = service
-        self._notify_title = title
-        self._notify_message = message
 
     # ------------------------------------------------------------------ scheduling
 
@@ -116,21 +132,30 @@ class CoffeeTimerCoordinator:
         await self.hass.services.async_call(
             "homeassistant", "turn_on", {"entity_id": self._plug_entity}
         )
-        await self._send_notification()
+        await self._send_notifications()
         self._enabled = False
         self._notify()
 
-    async def _send_notification(self) -> None:
-        service = self._notify_service
-        if not service:
-            return
-        try:
-            domain, svc = service.rsplit(".", 1)
-            await self.hass.services.async_call(
-                domain,
-                svc,
-                {"title": self._notify_title, "message": self._notify_message},
-                blocking=False,
-            )
-        except Exception:
-            _LOGGER.exception("Failed to send coffee timer notification via %s", service)
+    async def _send_notifications(self) -> None:
+        for recipient in self._recipients:
+            name = recipient.get("name", "")
+            if not self._recipient_enabled.get(name, True):
+                continue
+            service = recipient.get("service", "")
+            if not service:
+                continue
+            try:
+                domain, svc = service.rsplit(".", 1)
+                await self.hass.services.async_call(
+                    domain,
+                    svc,
+                    {
+                        "title": recipient.get("title", ""),
+                        "message": recipient.get("message", ""),
+                    },
+                    blocking=False,
+                )
+            except Exception:
+                _LOGGER.exception(
+                    "Failed to send coffee timer notification to %s via %s", name, service
+                )

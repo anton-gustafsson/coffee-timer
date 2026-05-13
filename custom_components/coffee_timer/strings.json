@@ -18,14 +18,34 @@
   },
   "options": {
     "step": {
-      "init": {
-        "title": "Coffee Timer Options",
+      "menu": {
+        "title": "Notification Recipients",
+        "description": "Current recipients: **{summary}**\n\nWhat would you like to do?",
+        "menu_options": {
+          "add_recipient": "Add recipient",
+          "remove_recipient": "Remove recipient",
+          "finish": "Save and close"
+        }
+      },
+      "add_recipient": {
+        "title": "Add Notification Recipient",
         "data": {
-          "notify_service": "Notification Device",
-          "notify_title": "Notification Title",
-          "notify_message": "Notification Message"
+          "name": "Name",
+          "service": "Notification Service",
+          "title": "Notification Title",
+          "message": "Notification Message"
+        }
+      },
+      "remove_recipient": {
+        "title": "Remove Notification Recipient",
+        "data": {
+          "name": "Recipient to remove"
         }
       }
+    },
+    "error": {
+      "name_required": "Please enter a name.",
+      "name_exists": "A recipient with this name already exists."
     }
   }
 }

@@ -10,11 +10,11 @@ import homeassistant.helpers.config_validation as cv
 
 from .const import (
     CONF_NOTIFY_MESSAGE,
+    CONF_NOTIFY_RECIPIENTS,
     CONF_NOTIFY_SERVICE,
     CONF_NOTIFY_TITLE,
     CONF_PLUG_ENTITY,
     DEFAULT_NOTIFY_MESSAGE,
-    DEFAULT_NOTIFY_SERVICE,
     DEFAULT_NOTIFY_TITLE,
     DOMAIN,
 )
@@ -28,8 +28,25 @@ CARD_URL = "/coffee_timer/coffee_timer_card.js"
 CARD_PATH = Path(__file__).parent / "coffee_timer_card.js"
 
 
+def _get_recipients(opts: dict) -> list[dict]:
+    """Extract recipients from options, migrating from legacy single-notify format."""
+    if CONF_NOTIFY_RECIPIENTS in opts:
+        return list(opts[CONF_NOTIFY_RECIPIENTS])
+    # Migrate legacy single-notify options
+    service = opts.get(CONF_NOTIFY_SERVICE, "")
+    if service:
+        return [
+            {
+                "name": "Default",
+                "service": service,
+                "title": opts.get(CONF_NOTIFY_TITLE, DEFAULT_NOTIFY_TITLE),
+                "message": opts.get(CONF_NOTIFY_MESSAGE, DEFAULT_NOTIFY_MESSAGE),
+            }
+        ]
+    return []
+
+
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    # Serve the Lovelace card JS from inside the component directory
     try:
         from homeassistant.components.http import StaticPathConfig
 
@@ -55,7 +72,6 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
                 )
                 return
 
-            # async_items() was removed in newer HA; fall back to .data.values()
             if hasattr(resources, "async_items"):
                 items = resources.async_items()
             elif hasattr(resources, "data"):
@@ -83,13 +99,10 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
 
 def _coordinator_from_entry(hass: HomeAssistant, entry: ConfigEntry) -> CoffeeTimerCoordinator:
-    opts = entry.options
     return CoffeeTimerCoordinator(
         hass,
         entry.data[CONF_PLUG_ENTITY],
-        notify_service=opts.get(CONF_NOTIFY_SERVICE, DEFAULT_NOTIFY_SERVICE),
-        notify_title=opts.get(CONF_NOTIFY_TITLE, DEFAULT_NOTIFY_TITLE),
-        notify_message=opts.get(CONF_NOTIFY_MESSAGE, DEFAULT_NOTIFY_MESSAGE),
+        notify_recipients=_get_recipients(entry.options),
     )
 
 
@@ -103,13 +116,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    coordinator: CoffeeTimerCoordinator = hass.data[DOMAIN][entry.entry_id]
-    opts = entry.options
-    coordinator.update_notify_options(
-        opts.get(CONF_NOTIFY_SERVICE, DEFAULT_NOTIFY_SERVICE),
-        opts.get(CONF_NOTIFY_TITLE, DEFAULT_NOTIFY_TITLE),
-        opts.get(CONF_NOTIFY_MESSAGE, DEFAULT_NOTIFY_MESSAGE),
-    )
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
