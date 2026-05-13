@@ -87,6 +87,16 @@ The switch exposes a `next_brew_time` attribute (ISO 8601) used by the card to d
 
 ---
 
+## Brand
+
+<img src="brand/icon.svg" width="128" alt="Coffee Timer icon"/>
+
+Source SVG is in `brand/icon.svg`. To submit to [home-assistant/brands](https://github.com/home-assistant/brands), export it as:
+- `icon.png` — 256×256 px
+- `icon@2x.png` — 512×512 px
+
+---
+
 ## License
 
 MIT — see [LICENSE](LICENSE)
