@@ -1,13 +1,13 @@
 {
   "domain": "coffee_timer",
   "name": "Coffee Timer",
+  "after_dependencies": ["http"],
   "codeowners": ["@anton-gustafsson"],
   "config_flow": true,
-  "documentation": "https://github.com/anton-gustafsson/coffee-timer",
-  "issue_tracker": "https://github.com/anton-gustafsson/coffee-timer/issues",
-  "iot_class": "local_push",
-  "version": "1.0.0",
   "dependencies": [],
-  "after_dependencies": ["http"],
-  "requirements": []
+  "documentation": "https://github.com/anton-gustafsson/coffee-timer",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/anton-gustafsson/coffee-timer/issues",
+  "requirements": [],
+  "version": "1.0.0"
 }
