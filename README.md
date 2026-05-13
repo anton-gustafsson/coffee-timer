@@ -59,15 +59,7 @@ A Home Assistant custom integration for scheduling a dumb coffee machine via a s
 
 ## Lovelace card
 
-### Install the card resource
-
-1. Copy `www/coffee_timer_card.js` into your HA config's `www/` folder
-2. **Settings → Dashboards → Resources → Add**
-   - URL: `/local/coffee_timer_card.js`
-   - Type: **JavaScript module**
-3. Hard-refresh your browser
-
-### Add the card
+The card is bundled inside the integration. After installing and restarting HA, the card is served and registered as a Lovelace resource automatically — no extra steps needed.
 
 In the Lovelace card picker, search for **Coffee Timer** — it has a built-in visual editor.
 
@@ -79,6 +71,8 @@ switch_entity: switch.coffee_timer_enabled
 time_entity: time.coffee_timer_brew_time
 name: Coffee Timer
 ```
+
+> **yaml-mode Lovelace:** add the resource manually under `resources:` with URL `/coffee_timer/coffee_timer_card.js` and type `module`.
 
 ---
 

@@ -26,3 +26,6 @@ Thumbs.db
 # HA development
 .storage/
 secrets.yaml
+
+# Claude Code
+.claude/
