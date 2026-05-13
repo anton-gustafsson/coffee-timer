@@ -44,7 +44,10 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
     async def _register_lovelace_resource(_event: Event) -> None:
         try:
-            resources = hass.data.get("lovelace", {}).get("resources")
+            lovelace_data = hass.data.get("lovelace")
+            resources = getattr(lovelace_data, "resources", None)
+            if resources is None and hasattr(lovelace_data, "get"):
+                resources = lovelace_data.get("resources")
             if resources is None:
                 _LOGGER.warning(
                     "Lovelace resources store not found — add %s manually as a JavaScript module resource",
